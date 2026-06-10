@@ -1,7 +1,7 @@
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.sync.get(["dashboardUrl"], (values) => {
     if (!values.dashboardUrl) {
-      chrome.storage.sync.set({ dashboardUrl: "http://localhost:3000", trackingEnabled: true });
+      chrome.storage.sync.set({ dashboardUrl: "https://gmail-tracker-dashboard.vercel.app", trackingEnabled: true });
     }
   });
 });

@@ -5,9 +5,9 @@ const status = document.getElementById("status");
 const openDashboard = document.getElementById("openDashboard");
 
 chrome.storage.sync.get(["dashboardUrl", "trackingEnabled"], (values) => {
-  dashboardUrl.value = values.dashboardUrl || "http://localhost:3000";
+  dashboardUrl.value = values.dashboardUrl || "https://gmail-tracker-dashboard.vercel.app";
   trackingEnabled.checked = values.trackingEnabled !== false;
-  openDashboard.href = dashboardUrl.value || "http://localhost:3000";
+  openDashboard.href = dashboardUrl.value || "https://gmail-tracker-dashboard.vercel.app";
 });
 
 save.addEventListener("click", () => {

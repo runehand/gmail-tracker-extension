@@ -1,5 +1,5 @@
 (function () {
-  const DEFAULT_URL = "http://localhost:3000";
+  const DEFAULT_URL = "https://gmail-tracker-dashboard.vercel.app";
   const state = {
     dashboardUrl: DEFAULT_URL,
     trackingEnabled: true,

@@ -11,10 +11,10 @@ Chrome Manifest V3 extension for Gmail open tracking.
 5. Open Gmail.
 6. Click the extension icon and set the dashboard URL.
 
-For local browser testing use:
+Default dashboard URL:
 
 ```text
-http://localhost:3000
+https://gmail-tracker-dashboard.vercel.app
 ```
 
 For real recipient tracking, use a public HTTPS dashboard URL. Gmail's image proxy cannot fetch `localhost` from a received email.

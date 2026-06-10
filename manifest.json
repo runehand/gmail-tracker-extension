@@ -4,7 +4,7 @@
   "description": "Simple Gmail open tracker with dashboard status.",
   "version": "0.1.0",
   "permissions": ["storage", "notifications"],
-  "host_permissions": ["http://localhost:3000/*", "https://*/*"],
+  "host_permissions": ["https://gmail-tracker-dashboard.vercel.app/*"],
   "action": {
     "default_popup": "popup.html",
     "default_title": "Gmail Tracker"
