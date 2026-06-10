@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Gmail Tracker",
+  "description": "Simple Gmail open tracker with dashboard status.",
+  "version": "0.1.0",
+  "permissions": ["storage", "notifications"],
+  "host_permissions": ["http://localhost:3000/*", "https://*/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Gmail Tracker"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

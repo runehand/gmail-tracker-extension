@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Gmail Tracker</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Gmail Tracker</h1>
+      <label>
+        Dashboard URL
+        <input id="dashboardUrl" type="url" placeholder="http://localhost:3000" />
+      </label>
+      <label class="row">
+        <input id="trackingEnabled" type="checkbox" />
+        Track sent Gmail messages
+      </label>
+      <button id="save">Save</button>
+      <a id="openDashboard" target="_blank" rel="noreferrer">Open dashboard</a>
+      <p id="status"></p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
