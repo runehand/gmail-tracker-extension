@@ -134,7 +134,8 @@
   }
 
   async function insertTrackingPixels(compose) {
-    if (compose.dataset.gtTracked === "true") return;
+    if (compose.dataset.gtTracked === "true" && compose.querySelector(".gt-dev-pixel img[data-gt-pixel]")) return;
+    if (compose.dataset.gtTracked === "true") delete compose.dataset.gtTracked;
     if (trackingPromises.has(compose)) return trackingPromises.get(compose);
 
     const body = getMessageBody(compose);
@@ -235,20 +236,21 @@
   }
 
   function createTrackingMarker(pixelUrl, trackId, recipientEmail, markerId) {
-    const pendingSrc = "data:image/gif;base64,R0lGODlhAQABAPAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==";
+    const pendingSrc = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23fff5f7' stroke='%23e11d48' stroke-width='4'/%3E%3Ctext x='50' y='46' text-anchor='middle' font-size='11' font-family='Arial' font-weight='700' fill='%23e11d48'%3ETracking%3C/text%3E%3Ctext x='50' y='62' text-anchor='middle' font-size='11' font-family='Arial' font-weight='700' fill='%23e11d48'%3EPixel%3C/text%3E%3C/svg%3E";
     return `
-      <span class="gt-dev-pixel" contenteditable="false" aria-hidden="true" style="display:block;width:1px;height:1px;max-width:1px;max-height:1px;overflow:hidden;opacity:0;line-height:0;font-size:0;mso-hide:all;">
+      <div class="gt-dev-pixel" contenteditable="false" style="display:inline-flex;position:relative;align-items:center;justify-content:center;width:100px;height:100px;margin:8px 0;border:2px solid #e11d48;box-sizing:border-box;color:#e11d48;font:700 11px Arial,sans-serif;background:#fff5f7;">
         <img
           ${markerId ? `data-gt-marker="${escapeHtml(markerId)}"` : ""}
           src="${escapeHtml(pendingSrc)}"
           ${pixelUrl ? `data-gt-src="${escapeHtml(pixelUrl)}"` : ""}
-          width="1"
-          height="1"
-          style="display:block;width:1px;height:1px;max-width:1px;max-height:1px;opacity:0;border:0;outline:0;"
+          width="100"
+          height="100"
+          style="display:block;width:100px;height:100px;object-fit:contain;"
           alt="Tracking pixel for ${escapeHtml(recipientEmail)}"
           ${trackId ? `data-gt-pixel="${escapeHtml(trackId)}"` : ""}
         >
-      </span>
+        <span>Tracking<br>Pixel</span>
+      </div>
     `;
   }
 

@@ -39,26 +39,35 @@
 }
 
 .gt-dev-pixel {
-  display: block;
-  width: 1px;
-  height: 1px;
-  max-width: 1px;
-  max-height: 1px;
-  overflow: hidden;
-  opacity: 0;
-  line-height: 0;
-  font-size: 0;
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  margin: 8px 0;
+  border: 2px solid #e11d48;
+  box-sizing: border-box;
+  color: #e11d48;
+  font: 700 11px Arial, sans-serif;
+  background: #fff5f7;
 }
 
 .gt-dev-pixel img {
+  position: absolute;
+  inset: 0;
   display: block;
-  width: 1px;
-  height: 1px;
-  max-width: 1px;
-  max-height: 1px;
-  border: 0;
-  outline: 0;
-  opacity: 0;
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+}
+
+.gt-dev-pixel span {
+  position: relative;
+  z-index: 1;
+  padding: 2px 4px;
+  background: rgba(255, 255, 255, 0.82);
+  text-align: center;
 }
 
 .gt-status-badge {
