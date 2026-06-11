@@ -305,7 +305,7 @@
         await fetch(`${state.dashboardUrl}/api/tracks/${trackId}/sender-view`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ source: "gmail_sender_view" })
+          body: JSON.stringify({ source: "gmail_sender_view", detectedAt: new Date(now).toISOString() })
         });
         setTimeout(refreshTracks, 1000);
       } catch (error) {
