@@ -81,12 +81,49 @@
   vertical-align: middle;
 }
 
+.gt-status-badge::before,
+.gt-thread-status::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  margin-right: 4px;
+  border: 1.8px solid currentColor;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.gt-status-opened::before,
+.gt-thread-opened::before {
+  background: currentColor;
+  box-shadow: inset 0 0 0 3px #dff7ec;
+}
+
 .gt-status-opened {
   background: #dff7ec;
   color: #11734f;
 }
 
 .gt-status-unread {
+  background: #edf0f2;
+  color: #5f6b72;
+}
+
+.gt-thread-status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin: 6px 0 0 0;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font: 600 12px Arial, sans-serif;
+}
+
+.gt-thread-opened {
+  background: #dff7ec;
+  color: #11734f;
+}
+
+.gt-thread-unread {
   background: #edf0f2;
   color: #5f6b72;
 }

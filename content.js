@@ -4,7 +4,8 @@
     dashboardUrl: DEFAULT_URL,
     trackingEnabled: true,
     tracks: [],
-    lastOpenCount: new Map()
+    lastOpenCount: new Map(),
+    senderViewMarks: new Map()
   };
   const trackingPromises = new WeakMap();
 
@@ -25,6 +26,8 @@
   setInterval(() => {
     enhanceComposeWindows();
     decorateEmailRows();
+    decorateOpenEmailViews();
+    markSenderSideViews();
   }, 1200);
 
   setInterval(refreshTracks, 10000);
@@ -71,6 +74,7 @@
           sendButton.dataset.gtPending = "true";
           try {
             await insertTrackingPixels(compose);
+            activateTrackingPixels(compose);
             sendButton.dataset.gtSendAfterTracking = "true";
             sendButton.click();
           } catch (error) {
@@ -168,7 +172,7 @@
         const marker = markers.find((item) => item.recipientEmail === recipientEmail);
         const image = marker?.image || (marker?.markerId ? body.querySelector(`img[data-gt-marker="${marker.markerId}"]`) : null);
         if (image) {
-          image.setAttribute("src", data.pixelUrl);
+          image.setAttribute("data-gt-src", data.pixelUrl);
           image.setAttribute("data-gt-pixel", data.track.id);
           image.removeAttribute("data-gt-marker");
         }
@@ -209,7 +213,8 @@
       <div class="gt-dev-pixel" contenteditable="false" style="display:inline-flex;position:relative;align-items:center;justify-content:center;width:100px;height:100px;margin:8px 0;border:2px solid #e11d48;box-sizing:border-box;color:#e11d48;font:700 11px Arial,sans-serif;background:#fff5f7;">
         <img
           ${markerId ? `data-gt-marker="${escapeHtml(markerId)}"` : ""}
-          src="${escapeHtml(pixelUrl || pendingSrc)}"
+          src="${escapeHtml(pendingSrc)}"
+          ${pixelUrl ? `data-gt-src="${escapeHtml(pixelUrl)}"` : ""}
           width="100"
           height="100"
           style="display:block;width:100px;height:100px;object-fit:contain;"
@@ -218,6 +223,15 @@
         >
       </div>
     `;
+  }
+
+  function activateTrackingPixels(compose) {
+    for (const image of compose.querySelectorAll(".gt-dev-pixel img[data-gt-src]")) {
+      image.setAttribute("src", image.getAttribute("data-gt-src"));
+      image.removeAttribute("data-gt-src");
+    }
+    setTimeout(markSenderSideViews, 1500);
+    setTimeout(markSenderSideViews, 5000);
   }
 
   function getRecipients(compose) {
@@ -244,6 +258,47 @@
     } catch {
       // Dashboard may be offline while Gmail is open.
     }
+  }
+
+  async function markSenderSideViews() {
+    const trackIds = findTrackingIdsInPage();
+    if (!trackIds.length) return;
+
+    for (const trackId of trackIds) {
+      const lastAttempt = state.senderViewMarks.get(trackId) ?? 0;
+      if (Date.now() - lastAttempt < 10000) continue;
+      state.senderViewMarks.set(trackId, Date.now());
+
+      try {
+        await fetch(`${state.dashboardUrl}/api/tracks/${trackId}/sender-view`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source: "gmail_sender_view" })
+        });
+        setTimeout(refreshTracks, 1000);
+      } catch (error) {
+        state.senderViewMarks.delete(trackId);
+      }
+    }
+  }
+
+  function findTrackingIdsInPage() {
+    const ids = new Set();
+    const nodes = document.querySelectorAll("img[src], a[href]");
+
+    for (const node of nodes) {
+      const raw = node.getAttribute("src") || node.getAttribute("href") || "";
+      const values = [raw, decodeURIComponent(raw)];
+      const hashIndex = raw.indexOf("#");
+      if (hashIndex >= 0) values.push(raw.slice(hashIndex + 1), decodeURIComponent(raw.slice(hashIndex + 1)));
+
+      for (const value of values) {
+        const match = value.match(/\/api\/pixel\/([a-f0-9-]{36})\.(?:png|gif|jpe?g|webp)/i);
+        if (match) ids.add(match[1]);
+      }
+    }
+
+    return Array.from(ids);
   }
 
   function notifyNewOpens(tracks) {
@@ -314,7 +369,6 @@
     if (!state.tracks.length) return;
     const rows = document.querySelectorAll("tr[role='row']");
     for (const row of rows) {
-      if (row.querySelector(".gt-status-badge")) continue;
       const text = row.textContent || "";
       const track = state.tracks.find((item) => item.subject && text.includes(item.subject));
       if (!track) continue;
@@ -322,11 +376,60 @@
       const subjectCell = row.querySelector("[role='link']") || row.querySelector("td");
       if (!subjectCell) continue;
 
-      const badge = document.createElement("span");
+      let badge = row.querySelector(".gt-status-badge");
+      if (!badge) {
+        badge = document.createElement("span");
+        subjectCell.appendChild(badge);
+      }
       badge.className = `gt-status-badge ${track.openCount > 0 ? "gt-status-opened" : "gt-status-unread"}`;
-      badge.textContent = track.openCount > 0 ? "Opened" : "Unread";
-      subjectCell.appendChild(badge);
+      badge.textContent = track.openCount > 0
+        ? `Viewed ${track.openCount} - ${formatRelativeTime(track.lastOpenedAt)}`
+        : "No view";
+      badge.title = track.openCount > 0
+        ? `Last recipient open ${formatRelativeTime(track.lastOpenedAt)}`
+        : "No recipient opens yet";
     }
+  }
+
+  function decorateOpenEmailViews() {
+    if (!state.tracks.length) return;
+
+    const subjectNodes = document.querySelectorAll("h2");
+    for (const subjectNode of subjectNodes) {
+      const subject = subjectNode.textContent?.trim();
+      if (!subject) continue;
+
+      const track = state.tracks.find((item) => item.subject && subject.includes(item.subject));
+      if (!track) continue;
+
+      let status = subjectNode.parentElement?.querySelector(".gt-thread-status");
+      if (!status) {
+        status = document.createElement("span");
+        status.className = "gt-thread-status";
+        subjectNode.insertAdjacentElement("afterend", status);
+      }
+
+      status.className = `gt-thread-status ${track.openCount > 0 ? "gt-thread-opened" : "gt-thread-unread"}`;
+      status.textContent = track.openCount > 0
+        ? `Viewed ${track.openCount} - last ${formatRelativeTime(track.lastOpenedAt)}`
+        : "No recipient views";
+      status.title = `To ${track.recipientEmail}`;
+    }
+  }
+
+  function formatRelativeTime(value) {
+    if (!value) return "never";
+
+    const seconds = Math.max(1, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
+    const units = [
+      ["day", 86400],
+      ["hour", 3600],
+      ["minute", 60],
+      ["second", 1]
+    ];
+    const [unit, size] = units.find((item) => seconds >= item[1]) || ["second", 1];
+    const amount = Math.floor(seconds / size);
+    return `${amount} ${unit}${amount === 1 ? "" : "s"} ago`;
   }
 
   function escapeHtml(value) {

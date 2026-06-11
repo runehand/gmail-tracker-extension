@@ -22,3 +22,5 @@ For real recipient tracking, use a public HTTPS dashboard URL. Gmail's image pro
 ## Development Behavior
 
 The extension currently inserts a visible 100x100 tracking marker into compose windows so the image is easy to inspect during development. For production, switch it back to a hidden 1x1 image before sending.
+
+The compose marker uses a local placeholder while drafting. The real tracking image URL is activated when Send is clicked, then sender-side Gmail views are reported back to the dashboard so they can be ignored in recipient open counts.
