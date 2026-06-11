@@ -468,25 +468,28 @@
 
   function decorateEmailRows() {
     if (!state.tracks.length) return;
-    const rows = document.querySelectorAll("tr[role='row']");
+    const rows = document.querySelectorAll("tr.zA[role='row']");
     const usedTrackIds = new Set();
     for (const row of rows) {
-      const track = findBestTrackForRow(row, usedTrackIds);
-      if (!track) continue;
-      usedTrackIds.add(track.id);
-
-      const subjectCell = row.querySelector("[role='link']") || row.querySelector("td");
       const timeWrap = row.querySelector("td.xW span[title]");
-      const timeCell = row.querySelector("td.xW");
-      const target = timeWrap || timeCell || subjectCell;
-      if (!target) continue;
+      if (!timeWrap) {
+        row.querySelector(".gt-status-badge")?.remove();
+        continue;
+      }
+
+      const track = findBestTrackForRow(row, usedTrackIds);
+      if (!track) {
+        row.querySelector(".gt-status-badge")?.remove();
+        continue;
+      }
+      usedTrackIds.add(track.id);
 
       let badge = row.querySelector(".gt-status-badge");
       if (!badge) {
         badge = document.createElement("span");
       }
-      if (badge.parentElement !== target) {
-        target.insertAdjacentElement("afterbegin", badge);
+      if (badge.parentElement !== timeWrap) {
+        timeWrap.insertAdjacentElement("afterbegin", badge);
       }
       badge.className = `gt-status-badge ${track.openCount > 0 ? "gt-status-opened" : "gt-status-unread"}`;
       badge.textContent = track.openCount > 0
