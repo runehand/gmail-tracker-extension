@@ -505,12 +505,11 @@
         timeWrap.insertAdjacentElement("afterbegin", badge);
       }
       badge.className = `gt-status-badge ${track.openCount > 0 ? "gt-status-opened" : "gt-status-unread"}`;
-      badge.textContent = track.openCount > 0
-        ? `Viewed ${track.openCount}x - ${formatRelativeTime(track.lastOpenedAt)}`
-        : "No view";
+      badge.innerHTML = statusBadgeMarkup(track);
       badge.title = track.openCount > 0
-        ? `Last recipient open ${formatRelativeTime(track.lastOpenedAt)}`
+        ? `${track.openCount} receiver view${track.openCount === 1 ? "" : "s"} - last ${formatRelativeTime(track.lastOpenedAt)}`
         : "No recipient opens yet";
+      badge.setAttribute("aria-label", badge.title);
     }
 
     cleanupMisplacedTrackingLabels();
@@ -624,10 +623,11 @@
       }
 
       status.className = `gt-thread-status ${track.openCount > 0 ? "gt-thread-opened" : "gt-thread-unread"}`;
-      status.textContent = track.openCount > 0
-        ? `Viewed ${track.openCount} - last ${formatRelativeTime(track.lastOpenedAt)}`
-        : "No recipient views";
-      status.title = `To ${track.recipientEmail}`;
+      status.innerHTML = statusBadgeMarkup(track, true);
+      status.title = track.openCount > 0
+        ? `To ${track.recipientEmail} - ${track.openCount} receiver view${track.openCount === 1 ? "" : "s"} - last ${formatRelativeTime(track.lastOpenedAt)}`
+        : `To ${track.recipientEmail} - no recipient views`;
+      status.setAttribute("aria-label", status.title);
     }
 
     cleanupMisplacedTrackingLabels();
@@ -643,6 +643,22 @@
 
     const className = subjectNode.getAttribute("class") || "";
     return className.split(/\s+/).includes("hP") || subjectNode.hasAttribute("data-thread-perm-id");
+  }
+
+  function statusBadgeMarkup(track, includeTime) {
+    const count = Number(track.openCount || 0);
+    const label = count > 0 ? `${count}` : "";
+    const time = count > 0 && includeTime ? `<span class="gt-status-time">${escapeHtml(formatRelativeTime(track.lastOpenedAt))}</span>` : "";
+    return `
+      <span class="gt-eye-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </span>
+      <span class="gt-status-count">${escapeHtml(label)}</span>
+      ${time}
+    `;
   }
 
   function cleanupMisplacedTrackingLabels() {
