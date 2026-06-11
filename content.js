@@ -5,7 +5,7 @@
     trackingEnabled: true,
     tracks: [],
     lastOpenCount: new Map(),
-    senderViewMarks: new Map()
+    senderViewsMarked: new Set()
   };
   const trackingPromises = new WeakMap();
 
@@ -276,14 +276,15 @@
   }
 
   async function refreshTracks() {
-    try {
-      const response = await fetch(`${state.dashboardUrl}/api/tracks`, { cache: "no-store" });
-      if (!response.ok) return;
-      const data = await response.json();
-      state.tracks = data.tracks || [];
-      notifyNewOpens(state.tracks);
-      renderPanel();
-      decorateEmailRows();
+      try {
+        const response = await fetch(`${state.dashboardUrl}/api/tracks`, { cache: "no-store" });
+        if (!response.ok) return;
+        const data = await response.json();
+        state.tracks = data.tracks || [];
+        notifyNewOpens(state.tracks);
+        renderPanel();
+        decorateEmailRows();
+        decorateOpenEmailViews();
     } catch {
       // Dashboard may be offline while Gmail is open.
     }
@@ -294,9 +295,8 @@
     if (!trackIds.length) return;
 
     for (const trackId of trackIds) {
-      const lastAttempt = state.senderViewMarks.get(trackId) ?? 0;
-      if (Date.now() - lastAttempt < 10000) continue;
-      state.senderViewMarks.set(trackId, Date.now());
+      if (state.senderViewsMarked.has(trackId)) continue;
+      state.senderViewsMarked.add(trackId);
 
       try {
         await fetch(`${state.dashboardUrl}/api/tracks/${trackId}/sender-view`, {
@@ -306,7 +306,7 @@
         });
         setTimeout(refreshTracks, 1000);
       } catch (error) {
-        state.senderViewMarks.delete(trackId);
+        state.senderViewsMarked.delete(trackId);
       }
     }
   }
@@ -364,11 +364,17 @@
 
   function trackerLogo() {
     return `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 6h16v12H4z"></path>
-        <path d="m4 7 8 6 8-6"></path>
-        <path d="M8 14s1.4-2.2 4-2.2 4 2.2 4 2.2-1.4 2.2-4 2.2S8 14 8 14Z"></path>
-        <circle cx="12" cy="14" r="1"></circle>
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <defs>
+          <linearGradient id="gtLogoGradient" x1="8" x2="40" y1="6" y2="42">
+            <stop offset="0" stop-color="#34d399"></stop>
+            <stop offset="1" stop-color="#065f46"></stop>
+          </linearGradient>
+        </defs>
+        <rect x="5" y="5" width="38" height="38" rx="10" fill="url(#gtLogoGradient)"></rect>
+        <path d="M12 16h24v17H12z" fill="none" stroke="#ecfdf5" stroke-width="2.4"></path>
+        <path d="m12 17 12 9 12-9" fill="none" stroke="#ecfdf5" stroke-width="2.4"></path>
+        <text x="24" y="34" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="800" fill="#ecfdf5">GT</text>
       </svg>
     `;
   }
@@ -398,8 +404,11 @@
 
     modal.innerHTML = `
       <header>
-        <span>Gmail Tracker</span>
-        <button type="button" class="gt-modal-close" aria-label="Close">x</button>
+        <span class="gt-modal-title">${trackerLogo()} Gmail Tracker</span>
+        <div class="gt-modal-actions">
+          <button type="button" class="gt-modal-refresh" aria-label="Refresh">Refresh</button>
+          <button type="button" class="gt-modal-close" aria-label="Close">x</button>
+        </div>
       </header>
       <div class="gt-modal-metrics">
         <div><strong>${total}</strong><span>tracked</span></div>
@@ -413,8 +422,16 @@
       ${rows || '<div class="gt-panel-row"><span>No tracked emails yet</span></div>'}
     `;
     modal.querySelector(".gt-modal-close")?.addEventListener("click", () => modal.classList.remove("gt-modal-open"));
+    modal.querySelector(".gt-modal-refresh")?.addEventListener("click", refreshTrackingUi);
     positionModalNearLauncher(modal);
     return modal;
+  }
+
+  async function refreshTrackingUi() {
+    await refreshTracks();
+    decorateEmailRows();
+    decorateOpenEmailViews();
+    renderSummaryModal(false);
   }
 
   function getPanelHost() {
