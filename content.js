@@ -475,18 +475,18 @@
       if (!track) continue;
       usedTrackIds.add(track.id);
 
-      const timeCell = row.querySelector("td.xW");
-      const statusCell = row.querySelector("td.yf") || row.querySelector("td.byZ") || timeCell;
       const subjectCell = row.querySelector("[role='link']") || row.querySelector("td");
-      const targetCell = statusCell || subjectCell;
-      if (!targetCell) continue;
+      const timeWrap = row.querySelector("td.xW span[title]");
+      const timeCell = row.querySelector("td.xW");
+      const target = timeWrap || timeCell || subjectCell;
+      if (!target) continue;
 
       let badge = row.querySelector(".gt-status-badge");
       if (!badge) {
         badge = document.createElement("span");
-        targetCell.insertAdjacentElement("afterbegin", badge);
-      } else if (badge.parentElement !== targetCell) {
-        targetCell.insertAdjacentElement("afterbegin", badge);
+      }
+      if (badge.parentElement !== target) {
+        target.insertAdjacentElement("afterbegin", badge);
       }
       badge.className = `gt-status-badge ${track.openCount > 0 ? "gt-status-opened" : "gt-status-unread"}`;
       badge.textContent = track.openCount > 0

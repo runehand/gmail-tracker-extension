@@ -82,9 +82,8 @@
   vertical-align: middle;
 }
 
-td.yf .gt-status-badge,
-td.byZ .gt-status-badge,
-td.xW .gt-status-badge {
+td.xW .gt-status-badge,
+td.xW span[title] .gt-status-badge {
   display: inline-flex !important;
   visibility: visible !important;
 }
