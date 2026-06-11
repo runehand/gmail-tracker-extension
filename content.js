@@ -25,6 +25,7 @@
 
   setInterval(() => {
     enhanceComposeWindows();
+    cleanupMisplacedTrackingLabels();
     decorateEmailRows();
     decorateOpenEmailViews();
     markSenderSideViews();
@@ -467,8 +468,13 @@
   }
 
   function decorateEmailRows() {
-    if (!state.tracks.length) return;
-    const rows = document.querySelectorAll("tr.zA[role='row']");
+    cleanupMisplacedTrackingLabels();
+    if (!state.tracks.length) {
+      document.querySelectorAll(".gt-status-badge").forEach((badge) => badge.remove());
+      return;
+    }
+
+    const rows = getEmailListRows();
     const usedTrackIds = new Set();
     for (const row of rows) {
       const timeWrap = row.querySelector("td.xW span[title]");
@@ -499,6 +505,24 @@
         ? `Last recipient open ${formatRelativeTime(track.lastOpenedAt)}`
         : "No recipient opens yet";
     }
+
+    cleanupMisplacedTrackingLabels();
+  }
+
+  function getEmailListRows() {
+    return Array.from(document.querySelectorAll("div[role='main'] tr.zA[role='row']")).filter(isEmailListRow);
+  }
+
+  function isEmailListRow(row) {
+    if (!(row instanceof Element)) return false;
+    if (row.closest("div[role='dialog'], form[role='search'], nav, [role='navigation'], .gt-summary-modal")) return false;
+    if (!row.querySelector("td.xW span[title]")) return false;
+    if (!row.querySelector("td.xY, td.a4W")) return false;
+    if (!row.querySelector(".bog")) return false;
+    if (!row.querySelector(".y2")) return false;
+
+    const rect = row.getBoundingClientRect();
+    return rect.width > 240 && rect.height > 12;
   }
 
   function findBestTrackForRow(row, usedTrackIds) {
@@ -510,6 +534,7 @@
 
     let best = null;
     let bestScore = 0;
+    let bestHasMessageMatch = false;
 
     for (const track of state.tracks) {
       if (usedTrackIds.has(track.id)) continue;
@@ -519,13 +544,24 @@
       const recipient = normalizeText(track.recipientEmail);
       const sender = normalizeText(track.senderEmail);
       let score = 0;
+      let hasMessageMatch = false;
 
-      if (subject && rowSubject === subject) score += 60;
-      else if (subject && rowSubject.includes(subject)) score += 40;
-      else if (subject && rowText.includes(subject)) score += 25;
+      if (subject && rowSubject === subject) {
+        score += 70;
+        hasMessageMatch = true;
+      } else if (subject && rowSubject.includes(subject)) {
+        score += 45;
+        hasMessageMatch = true;
+      } else if (subject && rowText.includes(subject)) {
+        score += 25;
+        hasMessageMatch = true;
+      }
 
       const bodySample = body.slice(0, 120);
-      if (bodySample && rowSnippet && (bodySample.includes(rowSnippet) || rowSnippet.includes(bodySample.slice(0, 40)))) score += 35;
+      if (bodySample && rowSnippet && (bodySample.includes(rowSnippet) || rowSnippet.includes(bodySample.slice(0, 40)))) {
+        score += 35;
+        hasMessageMatch = true;
+      }
       if (recipient && rowText.includes(recipient)) score += 18;
       if (sender && (rowText.includes(sender) || rowEmail === sender)) score += 12;
 
@@ -539,10 +575,11 @@
       if (score > bestScore) {
         bestScore = score;
         best = track;
+        bestHasMessageMatch = hasMessageMatch;
       }
     }
 
-    return bestScore >= 45 ? best : null;
+    return bestScore >= 50 && bestHasMessageMatch ? best : null;
   }
 
   function getRowTimestamp(row) {
@@ -556,10 +593,16 @@
   }
 
   function decorateOpenEmailViews() {
-    if (!state.tracks.length) return;
+    cleanupMisplacedTrackingLabels();
+    if (!state.tracks.length) {
+      document.querySelectorAll(".gt-thread-status").forEach((status) => status.remove());
+      return;
+    }
 
-    const subjectNodes = document.querySelectorAll("h2");
+    const subjectNodes = document.querySelectorAll("div[role='main'] h2.hP, div[role='main'] h2[data-thread-perm-id]");
     for (const subjectNode of subjectNodes) {
+      if (!isConversationSubject(subjectNode)) continue;
+
       const subject = subjectNode.textContent?.trim();
       if (!subject) continue;
 
@@ -578,6 +621,38 @@
         ? `Viewed ${track.openCount} - last ${formatRelativeTime(track.lastOpenedAt)}`
         : "No recipient views";
       status.title = `To ${track.recipientEmail}`;
+    }
+
+    cleanupMisplacedTrackingLabels();
+  }
+
+  function isConversationSubject(subjectNode) {
+    if (!(subjectNode instanceof Element)) return false;
+    if (subjectNode.closest("div[role='dialog'], form[role='search'], nav, [role='navigation'], .gt-summary-modal")) return false;
+    if (!subjectNode.closest("div[role='main']")) return false;
+
+    const rect = subjectNode.getBoundingClientRect();
+    if (rect.width < 80 || rect.height < 10) return false;
+
+    const className = subjectNode.getAttribute("class") || "";
+    return className.split(/\s+/).includes("hP") || subjectNode.hasAttribute("data-thread-perm-id");
+  }
+
+  function cleanupMisplacedTrackingLabels() {
+    for (const badge of document.querySelectorAll(".gt-status-badge")) {
+      const row = badge.closest("tr.zA[role='row']");
+      const timeCell = badge.closest("td.xW");
+      const timeWrap = badge.parentElement;
+      if (!row || !timeCell || !timeWrap?.matches("span[title]") || !isEmailListRow(row)) {
+        badge.remove();
+      }
+    }
+
+    for (const status of document.querySelectorAll(".gt-thread-status")) {
+      const subjectNode = status.previousElementSibling;
+      if (!subjectNode?.matches("h2") || !isConversationSubject(subjectNode)) {
+        status.remove();
+      }
     }
   }
 
