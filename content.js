@@ -30,6 +30,8 @@
     markSenderSideViews();
   }, 1200);
 
+  setInterval(renderPanel, 400);
+
   function getAccountEmail() {
     const accountNode = document.querySelector("a[aria-label*='Google Account']") || document.querySelector("[email]");
     const label = accountNode?.getAttribute("aria-label") || accountNode?.getAttribute("email") || "";
@@ -356,7 +358,6 @@
     }
 
     positionLauncherNearSearch(launcher);
-    renderSummaryModal(false);
   }
 
   function trackerLogo() {
@@ -457,12 +458,24 @@
 
   function positionLauncherNearSearch(launcher) {
     const search = document.querySelector("form[role='search']");
-    if (!search) return;
+    if (!search) {
+      launcher.classList.add("gt-launcher-hidden");
+      return;
+    }
 
     const rect = search.getBoundingClientRect();
+    if (rect.width < 260 || rect.height < 28 || rect.top < 0 || rect.left < 0) {
+      launcher.classList.add("gt-launcher-hidden");
+      return;
+    }
+
     const left = Math.min(rect.right + 12, window.innerWidth - 52);
     launcher.style.top = `${Math.max(8, rect.top + 4)}px`;
     launcher.style.left = `${Math.max(12, left)}px`;
+    launcher.classList.remove("gt-launcher-hidden");
+
+    const modal = document.querySelector(".gt-summary-modal.gt-modal-open");
+    if (modal) positionModalNearLauncher(modal);
   }
 
   function positionModalNearLauncher(modal) {
@@ -649,11 +662,13 @@
     const count = Number(track.openCount || 0);
     const label = count > 0 ? `${count}` : "";
     const time = count > 0 && includeTime ? `<span class="gt-status-time">${escapeHtml(formatRelativeTime(track.lastOpenedAt))}</span>` : "";
+    const icon = count > 0
+      ? `<path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="3"></circle>`
+      : `<path d="M2.5 12s3.4-6 9.5-6c2.1 0 3.9.7 5.4 1.6"></path><path d="M21.5 12s-3.4 6-9.5 6c-2.1 0-3.9-.7-5.4-1.6"></path><path d="m4 4 16 16"></path><path d="M9.9 9.9A3 3 0 0 0 14.1 14.1"></path>`;
     return `
       <span class="gt-eye-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" focusable="false">
-          <path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"></path>
-          <circle cx="12" cy="12" r="3"></circle>
+          ${icon}
         </svg>
       </span>
       <span class="gt-status-count">${escapeHtml(label)}</span>
