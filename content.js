@@ -5,7 +5,7 @@
     trackingEnabled: true,
     tracks: [],
     lastOpenCount: new Map(),
-    senderViewsMarked: new Set()
+    senderViewsMarked: new Map()
   };
   const trackingPromises = new WeakMap();
 
@@ -295,9 +295,11 @@
     const trackIds = findTrackingIdsInPage();
     if (!trackIds.length) return;
 
+    const now = Date.now();
     for (const trackId of trackIds) {
-      if (state.senderViewsMarked.has(trackId)) continue;
-      state.senderViewsMarked.add(trackId);
+      const lastMarkedAt = state.senderViewsMarked.get(trackId) || 0;
+      if (now - lastMarkedAt < 8000) continue;
+      state.senderViewsMarked.set(trackId, now);
 
       try {
         await fetch(`${state.dashboardUrl}/api/tracks/${trackId}/sender-view`, {
