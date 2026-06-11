@@ -193,6 +193,7 @@
   async function updateTrackingMetadata(compose) {
     const senderEmail = getAccountEmail();
     const subject = compose.querySelector("input[name='subjectbox']")?.value || "";
+    const content = getEmailContent(compose);
     const recipients = getRecipients(compose);
     const recipientEmail = recipients[0] || "unknown-recipient";
     const images = Array.from(compose.querySelectorAll(".gt-dev-pixel img[data-gt-pixel]"));
@@ -200,8 +201,21 @@
     await Promise.all(images.map((image) => fetch(`${state.dashboardUrl}/api/tracks/${image.getAttribute("data-gt-pixel")}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ senderEmail, recipientEmail, subject })
+      body: JSON.stringify({ senderEmail, recipientEmail, subject, bodyHtml: content.html, bodyText: content.text })
     })));
+  }
+
+  function getEmailContent(compose) {
+    const body = getMessageBody(compose);
+    if (!body) return { html: "", text: "" };
+
+    const clone = body.cloneNode(true);
+    for (const node of clone.querySelectorAll(".gt-dev-pixel")) node.remove();
+
+    return {
+      html: clone.innerHTML.trim(),
+      text: (clone.textContent || "").trim()
+    };
   }
 
   function ensureTrackingMarkers(body, targets) {
@@ -327,34 +341,80 @@
   }
 
   function renderPanel() {
-    let panel = document.querySelector(".gt-panel");
-    if (!panel) {
-      panel = document.createElement("aside");
-      panel.className = "gt-panel";
+    let launcher = document.querySelector(".gt-launcher");
+    if (!launcher) {
+      launcher = document.createElement("button");
+      launcher.className = "gt-launcher";
+      launcher.type = "button";
+      launcher.title = "Gmail Tracker";
+      launcher.innerHTML = trackerLogo();
+      launcher.addEventListener("click", toggleSummaryModal);
     }
 
     const host = getPanelHost();
-    if (host && panel.parentElement !== host) {
-      host.appendChild(panel);
-    } else if (!host && !panel.parentElement) {
-      document.body.prepend(panel);
+    if (host && launcher.parentElement !== host) {
+      host.appendChild(launcher);
+    } else if (!host && !launcher.parentElement) {
+      document.body.prepend(launcher);
     }
 
+    positionLauncherNearSearch(launcher);
+    renderSummaryModal(false);
+  }
+
+  function trackerLogo() {
+    return `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 6h16v12H4z"></path>
+        <path d="m4 7 8 6 8-6"></path>
+        <path d="M8 14s1.4-2.2 4-2.2 4 2.2 4 2.2-1.4 2.2-4 2.2S8 14 8 14Z"></path>
+        <circle cx="12" cy="14" r="1"></circle>
+      </svg>
+    `;
+  }
+
+  function toggleSummaryModal() {
+    const modal = renderSummaryModal(true);
+    modal.classList.toggle("gt-modal-open");
+  }
+
+  function renderSummaryModal(forceCreate) {
+    let modal = document.querySelector(".gt-summary-modal");
+    if (!modal && !forceCreate) return null;
+    if (!modal) {
+      modal = document.createElement("aside");
+      modal.className = "gt-summary-modal";
+      document.body.appendChild(modal);
+    }
+
+    const total = state.tracks.length;
+    const viewed = state.tracks.filter((track) => track.openCount > 0).length;
     const rows = state.tracks.slice(0, 8).map((track) => `
       <div class="gt-panel-row">
         <strong>${escapeHtml(track.subject || "(No subject)")}</strong>
-        <span>${escapeHtml(track.recipientEmail)} · ${track.openCount > 0 ? `Opened ${track.openCount}x` : "Unread"}</span>
+        <span>${escapeHtml(track.recipientEmail)} - ${track.openCount > 0 ? `Viewed ${track.openCount}x, ${formatRelativeTime(track.lastOpenedAt)}` : "No view"}</span>
       </div>
     `).join("");
 
-    panel.innerHTML = `
+    modal.innerHTML = `
       <header>
-        <span>Tracking</span>
+        <span>Gmail Tracker</span>
+        <button type="button" class="gt-modal-close" aria-label="Close">x</button>
+      </header>
+      <div class="gt-modal-metrics">
+        <div><strong>${total}</strong><span>tracked</span></div>
+        <div><strong>${viewed}</strong><span>viewed</span></div>
+        <div><strong>${total - viewed}</strong><span>no view</span></div>
+      </div>
+      <header class="gt-modal-subhead">
+        <span>Recent emails</span>
         <a href="${escapeHtml(state.dashboardUrl)}" target="_blank" rel="noreferrer">Dashboard</a>
       </header>
       ${rows || '<div class="gt-panel-row"><span>No tracked emails yet</span></div>'}
     `;
-    positionPanelNearSearch(panel);
+    modal.querySelector(".gt-modal-close")?.addEventListener("click", () => modal.classList.remove("gt-modal-open"));
+    positionModalNearLauncher(modal);
+    return modal;
   }
 
   function getPanelHost() {
@@ -370,14 +430,23 @@
     return host;
   }
 
-  function positionPanelNearSearch(panel) {
+  function positionLauncherNearSearch(launcher) {
     const search = document.querySelector("form[role='search']");
     if (!search) return;
 
     const rect = search.getBoundingClientRect();
-    const left = Math.min(rect.right + 12, window.innerWidth - 340);
-    panel.style.top = `${Math.max(8, rect.top + 2)}px`;
-    panel.style.left = `${Math.max(12, left)}px`;
+    const left = Math.min(rect.right + 12, window.innerWidth - 52);
+    launcher.style.top = `${Math.max(8, rect.top + 4)}px`;
+    launcher.style.left = `${Math.max(12, left)}px`;
+  }
+
+  function positionModalNearLauncher(modal) {
+    const launcher = document.querySelector(".gt-launcher");
+    if (!launcher) return;
+
+    const rect = launcher.getBoundingClientRect();
+    modal.style.top = `${rect.bottom + 8}px`;
+    modal.style.left = `${Math.min(rect.left, window.innerWidth - 340)}px`;
   }
 
   function decorateEmailRows() {
@@ -388,13 +457,17 @@
       const track = state.tracks.find((item) => item.subject && text.includes(item.subject));
       if (!track) continue;
 
+      const timeCell = row.querySelector("td.xW");
       const subjectCell = row.querySelector("[role='link']") || row.querySelector("td");
-      if (!subjectCell) continue;
+      const targetCell = timeCell || subjectCell;
+      if (!targetCell) continue;
 
       let badge = row.querySelector(".gt-status-badge");
       if (!badge) {
         badge = document.createElement("span");
-        subjectCell.appendChild(badge);
+        targetCell.insertAdjacentElement("afterbegin", badge);
+      } else if (badge.parentElement !== targetCell) {
+        targetCell.insertAdjacentElement("afterbegin", badge);
       }
       badge.className = `gt-status-badge ${track.openCount > 0 ? "gt-status-opened" : "gt-status-unread"}`;
       badge.textContent = track.openCount > 0
