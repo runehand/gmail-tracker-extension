@@ -88,7 +88,10 @@
           event.stopImmediatePropagation();
           sendButton.dataset.gtPending = "true";
           try {
-            await insertTrackingPixels(compose);
+            await insertTrackingPixels(compose, { force: true });
+            if (!hasSendableTrackingPixel(getMessageBody(compose))) {
+              throw new Error("Gmail Tracker could not add the tracking pixel before send.");
+            }
             await updateTrackingMetadata(compose);
             activateTrackingPixels(compose);
             sendButton.dataset.gtSendAfterTracking = "true";
@@ -148,13 +151,14 @@
     });
   }
 
-  async function insertTrackingPixels(compose) {
-    if (compose.dataset.gtTracked === "true" && getTrackingImages(compose).some((image) => image.hasAttribute("data-gt-pixel"))) return;
-    if (compose.dataset.gtTracked === "true") delete compose.dataset.gtTracked;
-    if (trackingPromises.has(compose)) return trackingPromises.get(compose);
-
+  async function insertTrackingPixels(compose, options = {}) {
     const body = getMessageBody(compose);
     if (!body) return;
+
+    if (compose.dataset.gtTracked === "true" && hasSendableTrackingPixel(body)) return;
+    if (compose.dataset.gtTracked === "true") delete compose.dataset.gtTracked;
+    if (options.force && !hasSendableTrackingPixel(body)) delete compose.dataset.gtTrackingPending;
+    if (trackingPromises.has(compose)) return trackingPromises.get(compose);
 
     const promise = createTrackingPixels(compose, body);
     trackingPromises.set(compose, promise);
@@ -215,12 +219,14 @@
   async function updateTrackingMetadata(compose) {
     const senderEmail = getAccountEmail();
     if (!senderEmail) return;
+    const body = getMessageBody(compose);
+    if (!body) return;
 
     const subject = compose.querySelector("input[name='subjectbox']")?.value || "";
     const content = getEmailContent(compose);
     const recipients = getRecipients(compose);
     const recipientEmail = recipients[0] || "unknown-recipient";
-    const images = getTrackingImages(compose).filter((image) => image.hasAttribute("data-gt-pixel"));
+    const images = getTrackingImages(body).filter((image) => image.hasAttribute("data-gt-pixel"));
 
     await Promise.all(images.map((image) => fetch(`${state.dashboardUrl}/api/tracks/${image.getAttribute("data-gt-pixel")}`, {
       method: "PATCH",
@@ -280,7 +286,10 @@
   }
 
   function activateTrackingPixels(compose) {
-    for (const image of getTrackingImages(compose).filter((item) => item.hasAttribute("data-gt-src"))) {
+    const body = getMessageBody(compose);
+    if (!body) return;
+
+    for (const image of getTrackingImages(body).filter((item) => item.hasAttribute("data-gt-src"))) {
       image.setAttribute("src", image.getAttribute("data-gt-src"));
       image.removeAttribute("data-gt-src");
     }
@@ -289,7 +298,15 @@
   }
 
   function getTrackingImages(root) {
+    if (!root) return [];
     return Array.from(root.querySelectorAll("img[data-gt-pixel], img[data-gt-marker], img[data-gt-src], .gt-dev-pixel img"));
+  }
+
+  function hasSendableTrackingPixel(root) {
+    return getTrackingImages(root).some((image) => (
+      image.hasAttribute("data-gt-pixel")
+      && (image.hasAttribute("data-gt-src") || (image.getAttribute("src") || "").includes("/api/pixel/"))
+    ));
   }
 
   function getRecipients(compose) {
