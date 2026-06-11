@@ -262,16 +262,16 @@
   }
 
   function createTrackingMarker(pixelUrl, trackId, recipientEmail, markerId) {
-    const pendingSrc = "data:image/gif;base64,R0lGODlhAQABAPAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==";
+    const pendingSrc = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAALSURBVBhXY2BABwAAEgABp3qZbgAAAABJRU5ErkJggg==";
     return `
-      <span class="gt-dev-pixel" contenteditable="false" aria-hidden="true" style="display:block;width:1px;height:1px;max-width:1px;max-height:1px;overflow:hidden;opacity:0;line-height:0;font-size:0;mso-hide:all;">
+      <span class="gt-dev-pixel" contenteditable="false" aria-hidden="true" style="display:block;width:2px;height:2px;max-width:2px;max-height:2px;overflow:hidden;line-height:0;font-size:0;">
         <img
           ${markerId ? `data-gt-marker="${escapeHtml(markerId)}"` : ""}
           src="${escapeHtml(pendingSrc)}"
           ${pixelUrl ? `data-gt-src="${escapeHtml(pixelUrl)}"` : ""}
-          width="1"
-          height="1"
-          style="display:block;width:1px;height:1px;max-width:1px;max-height:1px;opacity:0;border:0;outline:0;"
+          width="2"
+          height="2"
+          style="display:block;width:2px;height:2px;max-width:2px;max-height:2px;border:0;outline:0;"
           alt="Tracking pixel for ${escapeHtml(recipientEmail)}"
           ${trackId ? `data-gt-pixel="${escapeHtml(trackId)}"` : ""}
         >

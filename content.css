@@ -40,25 +40,23 @@
 
 .gt-dev-pixel {
   display: block;
-  width: 1px;
-  height: 1px;
-  max-width: 1px;
-  max-height: 1px;
+  width: 2px;
+  height: 2px;
+  max-width: 2px;
+  max-height: 2px;
   overflow: hidden;
-  opacity: 0;
   line-height: 0;
   font-size: 0;
 }
 
 .gt-dev-pixel img {
   display: block;
-  width: 1px;
-  height: 1px;
-  max-width: 1px;
-  max-height: 1px;
+  width: 2px;
+  height: 2px;
+  max-width: 2px;
+  max-height: 2px;
   border: 0;
   outline: 0;
-  opacity: 0;
 }
 
 .gt-status-badge {
