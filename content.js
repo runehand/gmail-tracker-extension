@@ -6,7 +6,8 @@
     tracks: [],
     lastOpenCount: new Map(),
     senderViewsMarked: new Map(),
-    isRefreshing: false
+    isRefreshing: false,
+    currentAccountEmail: ""
   };
   const trackingPromises = new WeakMap();
 
@@ -33,10 +34,24 @@
   setInterval(renderPanel, 400);
 
   function getAccountEmail() {
-    const accountNode = document.querySelector("a[aria-label*='Google Account']") || document.querySelector("[email]");
-    const label = accountNode?.getAttribute("aria-label") || accountNode?.getAttribute("email") || "";
+    const accountNode = document.querySelector("a[aria-label*='Google Account']")
+      || document.querySelector("a[href*='SignOutOptions']")
+      || document.querySelector("[aria-label*='Google Account']");
+    const label = accountNode?.getAttribute("aria-label") || accountNode?.textContent || "";
     const match = label.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-    return match?.[0] || "unknown@gmail.com";
+    if (match?.[0]) {
+      state.currentAccountEmail = match[0].toLowerCase();
+    }
+    return state.currentAccountEmail;
+  }
+
+  function isTrackForCurrentSender(track) {
+    const accountEmail = normalizeEmail(getAccountEmail());
+    return !!accountEmail && normalizeEmail(track?.senderEmail) === accountEmail;
+  }
+
+  function filterTracksForCurrentSender(tracks) {
+    return Array.isArray(tracks) ? tracks.filter(isTrackForCurrentSender) : [];
   }
 
   function getComposeWindows() {
@@ -178,6 +193,9 @@
           image.setAttribute("data-gt-pixel", data.track.id);
           image.removeAttribute("data-gt-marker");
         }
+        if (isTrackForCurrentSender(data.track)) {
+          state.tracks = [data.track, ...state.tracks.filter((track) => track.id !== data.track.id)];
+        }
       }
 
       compose.dataset.gtTracked = "true";
@@ -236,20 +254,21 @@
   }
 
   function createTrackingMarker(pixelUrl, trackId, recipientEmail, markerId) {
-    const pendingSrc = "data:image/gif;base64,R0lGODlhAQABAPAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==";
+    const pendingSrc = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23fff5f7' stroke='%23e11d48' stroke-width='4'/%3E%3Ctext x='50' y='46' text-anchor='middle' font-size='11' font-family='Arial' font-weight='700' fill='%23e11d48'%3ETracking%3C/text%3E%3Ctext x='50' y='62' text-anchor='middle' font-size='11' font-family='Arial' font-weight='700' fill='%23e11d48'%3EPixel%3C/text%3E%3C/svg%3E";
     return `
-      <span class="gt-dev-pixel" contenteditable="false" aria-hidden="true" style="display:block;width:1px;height:1px;max-width:1px;max-height:1px;overflow:hidden;opacity:0;line-height:0;font-size:0;mso-hide:all;">
+      <div class="gt-dev-pixel" contenteditable="false" style="display:inline-flex;position:relative;align-items:center;justify-content:center;width:100px;height:100px;margin:8px 0;border:2px solid #e11d48;box-sizing:border-box;color:#e11d48;font:700 11px Arial,sans-serif;background:#fff5f7;">
         <img
           ${markerId ? `data-gt-marker="${escapeHtml(markerId)}"` : ""}
           src="${escapeHtml(pendingSrc)}"
           ${pixelUrl ? `data-gt-src="${escapeHtml(pixelUrl)}"` : ""}
-          width="1"
-          height="1"
-          style="display:block;width:1px;height:1px;max-width:1px;max-height:1px;opacity:0;border:0;outline:0;"
+          width="100"
+          height="100"
+          style="display:block;width:100px;height:100px;object-fit:contain;"
           alt="Tracking pixel for ${escapeHtml(recipientEmail)}"
           ${trackId ? `data-gt-pixel="${escapeHtml(trackId)}"` : ""}
         >
-      </span>
+        <span>Tracking<br>Pixel</span>
+      </div>
     `;
   }
 
@@ -279,7 +298,7 @@
         const response = await fetch(`${state.dashboardUrl}/api/tracks`, { cache: "no-store" });
         if (!response.ok) return;
         const data = await response.json();
-        state.tracks = data.tracks || [];
+        state.tracks = filterTracksForCurrentSender(data.tracks || []);
         notifyNewOpens(state.tracks);
         renderPanel();
         decorateEmailRows();
@@ -294,7 +313,9 @@
     if (!trackIds.length) return;
 
     const now = Date.now();
+    const ownedTrackIds = new Set(state.tracks.filter(isTrackForCurrentSender).map((track) => track.id));
     for (const trackId of trackIds) {
+      if (!ownedTrackIds.has(trackId)) continue;
       const lastMarkedAt = state.senderViewsMarked.get(trackId) || 0;
       if (now - lastMarkedAt < 8000) continue;
       state.senderViewsMarked.set(trackId, now);
@@ -610,6 +631,10 @@
 
   function normalizeText(value) {
     return String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+  }
+
+  function normalizeEmail(value) {
+    return String(value || "").toLowerCase().trim();
   }
 
   function decorateOpenEmailViews() {
