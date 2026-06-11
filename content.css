@@ -291,6 +291,15 @@ td.xW span[title] .gt-status-badge {
   border-top: 1px solid #e4e8e6;
 }
 
+.gt-modal-account {
+  padding: 7px 8px 0;
+  color: #49615b;
+  font: 600 11px Arial, sans-serif;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .gt-modal-metrics {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

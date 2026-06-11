@@ -169,6 +169,11 @@
     compose.dataset.gtTrackingPending = "true";
 
     const senderEmail = getAccountEmail();
+    if (!senderEmail) {
+      delete compose.dataset.gtTrackingPending;
+      throw new Error("Gmail Tracker could not detect the current Gmail account.");
+    }
+
     const subject = compose.querySelector("input[name='subjectbox']")?.value || "";
     const recipients = getRecipients(compose);
     const targets = [recipients[0] || "unknown-recipient"];
@@ -209,6 +214,8 @@
 
   async function updateTrackingMetadata(compose) {
     const senderEmail = getAccountEmail();
+    if (!senderEmail) return;
+
     const subject = compose.querySelector("input[name='subjectbox']")?.value || "";
     const content = getEmailContent(compose);
     const recipients = getRecipients(compose);
@@ -295,7 +302,16 @@
 
   async function refreshTracks() {
       try {
-        const response = await fetch(`${state.dashboardUrl}/api/tracks`, { cache: "no-store" });
+        const senderEmail = getAccountEmail();
+        if (!senderEmail) {
+          state.tracks = [];
+          renderPanel();
+          decorateEmailRows();
+          decorateOpenEmailViews();
+          return;
+        }
+
+        const response = await fetch(`${state.dashboardUrl}/api/tracks?senderEmail=${encodeURIComponent(senderEmail)}`, { cache: "no-store" });
         if (!response.ok) return;
         const data = await response.json();
         state.tracks = filterTracksForCurrentSender(data.tracks || []);
@@ -309,6 +325,9 @@
   }
 
   async function markSenderSideViews() {
+    const senderEmail = getAccountEmail();
+    if (!senderEmail) return;
+
     const trackIds = findTrackingIdsInPage();
     if (!trackIds.length) return;
 
@@ -324,7 +343,7 @@
         await fetch(`${state.dashboardUrl}/api/tracks/${trackId}/sender-view`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ source: "gmail_sender_view", detectedAt: new Date(now).toISOString() })
+          body: JSON.stringify({ senderEmail, source: "gmail_sender_view", detectedAt: new Date(now).toISOString() })
         });
       } catch (error) {
         state.senderViewsMarked.delete(trackId);
@@ -415,6 +434,7 @@
 
     const total = state.tracks.length;
     const viewed = state.tracks.filter((track) => track.openCount > 0).length;
+    const accountEmail = getAccountEmail();
     const rows = state.tracks.slice(0, 8).map((track) => `
       <div class="gt-panel-row">
         <strong>${escapeHtml(track.subject || "(No subject)")}</strong>
@@ -433,6 +453,7 @@
           <button type="button" class="gt-modal-close" aria-label="Close">x</button>
         </div>
       </header>
+      <div class="gt-modal-account">Showing sent emails for ${accountEmail ? escapeHtml(accountEmail) : "this Gmail account"}</div>
       <div class="gt-modal-metrics">
         <div><strong>${total}</strong><span>tracked</span></div>
         <div><strong>${viewed}</strong><span>viewed</span></div>
