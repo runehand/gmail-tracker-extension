@@ -149,7 +149,7 @@
   }
 
   async function insertTrackingPixels(compose) {
-    if (compose.dataset.gtTracked === "true" && compose.querySelector(".gt-dev-pixel img[data-gt-pixel]")) return;
+    if (compose.dataset.gtTracked === "true" && getTrackingImages(compose).some((image) => image.hasAttribute("data-gt-pixel"))) return;
     if (compose.dataset.gtTracked === "true") delete compose.dataset.gtTracked;
     if (trackingPromises.has(compose)) return trackingPromises.get(compose);
 
@@ -220,7 +220,7 @@
     const content = getEmailContent(compose);
     const recipients = getRecipients(compose);
     const recipientEmail = recipients[0] || "unknown-recipient";
-    const images = Array.from(compose.querySelectorAll(".gt-dev-pixel img[data-gt-pixel]"));
+    const images = getTrackingImages(compose).filter((image) => image.hasAttribute("data-gt-pixel"));
 
     await Promise.all(images.map((image) => fetch(`${state.dashboardUrl}/api/tracks/${image.getAttribute("data-gt-pixel")}`, {
       method: "PATCH",
@@ -235,6 +235,7 @@
 
     const clone = body.cloneNode(true);
     for (const node of clone.querySelectorAll(".gt-dev-pixel")) node.remove();
+    for (const node of clone.querySelectorAll("img[data-gt-pixel], img[data-gt-marker], img[data-gt-src]")) node.remove();
 
     return {
       html: clone.innerHTML.trim(),
@@ -243,7 +244,7 @@
   }
 
   function ensureTrackingMarkers(body, targets) {
-    const existingImages = Array.from(body.querySelectorAll(".gt-dev-pixel img"));
+    const existingImages = getTrackingImages(body);
     if (existingImages.length) {
       return existingImages.map((image, index) => ({
         markerId: image.getAttribute("data-gt-marker"),
@@ -279,12 +280,16 @@
   }
 
   function activateTrackingPixels(compose) {
-    for (const image of compose.querySelectorAll(".gt-dev-pixel img[data-gt-src]")) {
+    for (const image of getTrackingImages(compose).filter((item) => item.hasAttribute("data-gt-src"))) {
       image.setAttribute("src", image.getAttribute("data-gt-src"));
       image.removeAttribute("data-gt-src");
     }
     setTimeout(markSenderSideViews, 1500);
     setTimeout(markSenderSideViews, 5000);
+  }
+
+  function getTrackingImages(root) {
+    return Array.from(root.querySelectorAll("img[data-gt-pixel], img[data-gt-marker], img[data-gt-src], .gt-dev-pixel img"));
   }
 
   function getRecipients(compose) {
