@@ -469,10 +469,11 @@
   function decorateEmailRows() {
     if (!state.tracks.length) return;
     const rows = document.querySelectorAll("tr[role='row']");
+    const usedTrackIds = new Set();
     for (const row of rows) {
-      const text = row.textContent || "";
-      const track = state.tracks.find((item) => item.subject && text.includes(item.subject));
+      const track = findBestTrackForRow(row, usedTrackIds);
       if (!track) continue;
+      usedTrackIds.add(track.id);
 
       const timeCell = row.querySelector("td.xW");
       const subjectCell = row.querySelector("[role='link']") || row.querySelector("td");
@@ -496,6 +497,60 @@
     }
   }
 
+  function findBestTrackForRow(row, usedTrackIds) {
+    const rowText = normalizeText(row.textContent || "");
+    const rowSubject = normalizeText(row.querySelector(".bog")?.textContent || "");
+    const rowSnippet = normalizeText(row.querySelector(".y2")?.textContent || "");
+    const rowEmail = normalizeText(row.querySelector("[email]")?.getAttribute("email") || "");
+    const rowTime = getRowTimestamp(row);
+
+    let best = null;
+    let bestScore = 0;
+
+    for (const track of state.tracks) {
+      if (usedTrackIds.has(track.id)) continue;
+
+      const subject = normalizeText(track.subject);
+      const body = normalizeText(track.bodyText || "");
+      const recipient = normalizeText(track.recipientEmail);
+      const sender = normalizeText(track.senderEmail);
+      let score = 0;
+
+      if (subject && rowSubject === subject) score += 60;
+      else if (subject && rowSubject.includes(subject)) score += 40;
+      else if (subject && rowText.includes(subject)) score += 25;
+
+      const bodySample = body.slice(0, 120);
+      if (bodySample && rowSnippet && (bodySample.includes(rowSnippet) || rowSnippet.includes(bodySample.slice(0, 40)))) score += 35;
+      if (recipient && rowText.includes(recipient)) score += 18;
+      if (sender && (rowText.includes(sender) || rowEmail === sender)) score += 12;
+
+      if (rowTime) {
+        const minutes = Math.abs(rowTime.getTime() - new Date(track.sentAt || track.createdAt).getTime()) / 60000;
+        if (minutes <= 2) score += 20;
+        else if (minutes <= 20) score += 10;
+        else if (minutes <= 1440) score += 4;
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = track;
+      }
+    }
+
+    return bestScore >= 45 ? best : null;
+  }
+
+  function getRowTimestamp(row) {
+    const title = row.querySelector("td.xW span[title]")?.getAttribute("title") || "";
+    const parsed = Date.parse(title);
+    return Number.isNaN(parsed) ? null : new Date(parsed);
+  }
+
+  function normalizeText(value) {
+    return String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+  }
+
   function decorateOpenEmailViews() {
     if (!state.tracks.length) return;
 
@@ -504,7 +559,7 @@
       const subject = subjectNode.textContent?.trim();
       if (!subject) continue;
 
-      const track = state.tracks.find((item) => item.subject && subject.includes(item.subject));
+      const track = findBestTrackForThread(subjectNode);
       if (!track) continue;
 
       let status = subjectNode.parentElement?.querySelector(".gt-thread-status");
@@ -520,6 +575,32 @@
         : "No recipient views";
       status.title = `To ${track.recipientEmail}`;
     }
+  }
+
+  function findBestTrackForThread(subjectNode) {
+    const container = subjectNode.closest("[role='main']") || document.body;
+    const pageText = normalizeText(container.textContent || "");
+    const subject = normalizeText(subjectNode.textContent || "");
+    let best = null;
+    let bestScore = 0;
+
+    for (const track of state.tracks) {
+      const trackSubject = normalizeText(track.subject);
+      const body = normalizeText(track.bodyText || "").slice(0, 160);
+      let score = 0;
+
+      if (trackSubject && subject === trackSubject) score += 60;
+      else if (trackSubject && subject.includes(trackSubject)) score += 40;
+      if (body && pageText.includes(body.slice(0, 60))) score += 35;
+      if (track.recipientEmail && pageText.includes(normalizeText(track.recipientEmail))) score += 12;
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = track;
+      }
+    }
+
+    return bestScore >= 45 ? best : null;
   }
 
   function formatRelativeTime(value) {
