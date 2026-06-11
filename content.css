@@ -74,11 +74,19 @@
   align-items: center;
   width: max-content;
   height: 20px;
-  margin-right: 8px;
+  margin-right: 6px;
   padding: 0 6px;
   border-radius: 5px;
-  font: 600 11px Arial, sans-serif;
+  font: 700 11px Arial, sans-serif;
+  white-space: nowrap;
   vertical-align: middle;
+}
+
+td.yf .gt-status-badge,
+td.byZ .gt-status-badge,
+td.xW .gt-status-badge {
+  display: inline-flex !important;
+  visibility: visible !important;
 }
 
 .gt-status-badge::before,

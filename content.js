@@ -201,7 +201,7 @@
     await Promise.all(images.map((image) => fetch(`${state.dashboardUrl}/api/tracks/${image.getAttribute("data-gt-pixel")}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ senderEmail, recipientEmail, subject, bodyHtml: content.html, bodyText: content.text })
+      body: JSON.stringify({ senderEmail, recipientEmail, subject, bodyHtml: content.html, bodyText: content.text, sentAt: new Date().toISOString() })
     })));
   }
 
@@ -476,8 +476,9 @@
       usedTrackIds.add(track.id);
 
       const timeCell = row.querySelector("td.xW");
+      const statusCell = row.querySelector("td.yf") || row.querySelector("td.byZ") || timeCell;
       const subjectCell = row.querySelector("[role='link']") || row.querySelector("td");
-      const targetCell = timeCell || subjectCell;
+      const targetCell = statusCell || subjectCell;
       if (!targetCell) continue;
 
       let badge = row.querySelector(".gt-status-badge");
