@@ -74,6 +74,7 @@
           sendButton.dataset.gtPending = "true";
           try {
             await insertTrackingPixels(compose);
+            await updateTrackingMetadata(compose);
             activateTrackingPixels(compose);
             sendButton.dataset.gtSendAfterTracking = "true";
             sendButton.click();
@@ -187,6 +188,20 @@
     }
 
     setTimeout(refreshTracks, 1500);
+  }
+
+  async function updateTrackingMetadata(compose) {
+    const senderEmail = getAccountEmail();
+    const subject = compose.querySelector("input[name='subjectbox']")?.value || "";
+    const recipients = getRecipients(compose);
+    const recipientEmail = recipients[0] || "unknown-recipient";
+    const images = Array.from(compose.querySelectorAll(".gt-dev-pixel img[data-gt-pixel]"));
+
+    await Promise.all(images.map((image) => fetch(`${state.dashboardUrl}/api/tracks/${image.getAttribute("data-gt-pixel")}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ senderEmail, recipientEmail, subject })
+    })));
   }
 
   function ensureTrackingMarkers(body, targets) {
@@ -383,7 +398,7 @@
       }
       badge.className = `gt-status-badge ${track.openCount > 0 ? "gt-status-opened" : "gt-status-unread"}`;
       badge.textContent = track.openCount > 0
-        ? `Viewed ${track.openCount} - ${formatRelativeTime(track.lastOpenedAt)}`
+        ? `Viewed ${track.openCount}x - ${formatRelativeTime(track.lastOpenedAt)}`
         : "No view";
       badge.title = track.openCount > 0
         ? `Last recipient open ${formatRelativeTime(track.lastOpenedAt)}`
