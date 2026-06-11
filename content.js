@@ -165,7 +165,7 @@
         const response = await fetch(`${state.dashboardUrl}/api/tracks`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ senderEmail, recipientEmail, subject, gmailMessageKey, sentAt: now })
+          body: JSON.stringify({ senderEmail, recipientEmail, subject, gmailMessageKey, sentAt: now, sent: false })
         });
 
         if (!response.ok) throw new Error(`Tracker backend returned ${response.status}`);
@@ -201,7 +201,7 @@
     await Promise.all(images.map((image) => fetch(`${state.dashboardUrl}/api/tracks/${image.getAttribute("data-gt-pixel")}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ senderEmail, recipientEmail, subject, bodyHtml: content.html, bodyText: content.text, sentAt: new Date().toISOString() })
+      body: JSON.stringify({ senderEmail, recipientEmail, subject, bodyHtml: content.html, bodyText: content.text, sentAt: new Date().toISOString(), sent: true })
     })));
   }
 

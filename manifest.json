@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Gmail Tracker",
   "description": "Simple Gmail open tracker with dashboard status.",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "permissions": ["storage", "notifications"],
   "host_permissions": ["https://gmail-tracker-dashboard.vercel.app/*"],
   "action": {
