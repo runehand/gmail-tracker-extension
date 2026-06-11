@@ -223,7 +223,35 @@ td.xW span[title] .gt-status-badge {
 }
 
 .gt-modal-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 0 8px;
+}
+
+.gt-modal-refresh:disabled {
+  cursor: wait;
+  opacity: 0.74;
+}
+
+.gt-refresh-spinner {
+  display: none;
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(16, 114, 95, 0.28);
+  border-top-color: #10725f;
+  border-radius: 50%;
+  animation: gt-spin 0.72s linear infinite;
+}
+
+.gt-modal-refresh:disabled .gt-refresh-spinner {
+  display: inline-block;
+}
+
+@keyframes gt-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .gt-modal-subhead {

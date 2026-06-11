@@ -5,7 +5,8 @@
     trackingEnabled: true,
     tracks: [],
     lastOpenCount: new Map(),
-    senderViewsMarked: new Map()
+    senderViewsMarked: new Map(),
+    isRefreshing: false
   };
   const trackingPromises = new WeakMap();
 
@@ -13,14 +14,12 @@
     state.dashboardUrl = (values.dashboardUrl || DEFAULT_URL).replace(/\/$/, "");
     state.trackingEnabled = values.trackingEnabled !== false;
     renderPanel();
-    refreshTracks();
   });
 
   chrome.storage.onChanged.addListener((changes) => {
     if (changes.dashboardUrl) state.dashboardUrl = changes.dashboardUrl.newValue.replace(/\/$/, "");
     if (changes.trackingEnabled) state.trackingEnabled = changes.trackingEnabled.newValue !== false;
     renderPanel();
-    refreshTracks();
   });
 
   setInterval(() => {
@@ -30,8 +29,6 @@
     decorateOpenEmailViews();
     markSenderSideViews();
   }, 1200);
-
-  setInterval(refreshTracks, 10000);
 
   function getAccountEmail() {
     const accountNode = document.querySelector("a[aria-label*='Google Account']") || document.querySelector("[email]");
@@ -187,8 +184,6 @@
     } finally {
       delete compose.dataset.gtTrackingPending;
     }
-
-    setTimeout(refreshTracks, 1500);
   }
 
   async function updateTrackingMetadata(compose) {
@@ -307,7 +302,6 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ source: "gmail_sender_view", detectedAt: new Date(now).toISOString() })
         });
-        setTimeout(refreshTracks, 1000);
       } catch (error) {
         state.senderViewsMarked.delete(trackId);
       }
@@ -409,7 +403,10 @@
       <header>
         <span class="gt-modal-title">${trackerLogo()} Gmail Tracker</span>
         <div class="gt-modal-actions">
-          <button type="button" class="gt-modal-refresh" aria-label="Refresh">Refresh</button>
+          <button type="button" class="gt-modal-refresh" aria-label="Refresh" ${state.isRefreshing ? "disabled" : ""}>
+            <span class="gt-refresh-spinner" aria-hidden="true"></span>
+            <span>${state.isRefreshing ? "Refreshing" : "Refresh"}</span>
+          </button>
           <button type="button" class="gt-modal-close" aria-label="Close">x</button>
         </div>
       </header>
@@ -431,10 +428,18 @@
   }
 
   async function refreshTrackingUi() {
-    await refreshTracks();
-    decorateEmailRows();
-    decorateOpenEmailViews();
+    if (state.isRefreshing) return;
+    state.isRefreshing = true;
     renderSummaryModal(false);
+    try {
+      await refreshTracks();
+      cleanupMisplacedTrackingLabels();
+      decorateEmailRows();
+      decorateOpenEmailViews();
+    } finally {
+      state.isRefreshing = false;
+      renderSummaryModal(false);
+    }
   }
 
   function getPanelHost() {
