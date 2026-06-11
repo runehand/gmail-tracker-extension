@@ -518,7 +518,7 @@
         timeWrap.insertAdjacentElement("afterbegin", badge);
       }
       badge.className = `gt-status-badge ${track.openCount > 0 ? "gt-status-opened" : "gt-status-unread"}`;
-      badge.innerHTML = statusBadgeMarkup(track);
+      badge.innerHTML = statusBadgeMarkup(track, true);
       badge.title = track.openCount > 0
         ? `${track.openCount} receiver view${track.openCount === 1 ? "" : "s"} - last ${formatRelativeTime(track.lastOpenedAt)}`
         : "No recipient opens yet";
