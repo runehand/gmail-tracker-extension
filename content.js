@@ -647,23 +647,52 @@
   }
 
   function findBestTrackForRow(row, usedTrackIds) {
-    const rowText = normalizeText(row.textContent || "");
-    const rowSubject = normalizeText(row.querySelector(".bog")?.textContent || "");
+    const identity = getRowEmailIdentity(row);
 
     for (const track of state.tracks) {
       if (usedTrackIds.has(track.id)) continue;
-      if (matchesRequiredEmailIdentity(track, rowSubject, rowText)) return track;
+      if (matchesRequiredEmailIdentity(track, identity)) return track;
     }
 
     return null;
   }
 
-  function matchesRequiredEmailIdentity(track, subjectText, containerText) {
+  function getRowEmailIdentity(row) {
+    return {
+      subject: normalizeText(row.querySelector(".bog")?.textContent || ""),
+      text: normalizeText(row.textContent || ""),
+      emails: getEmailsFromElement(row)
+    };
+  }
+
+  function getEmailsFromElement(root) {
+    const emails = new Set();
+    const nodes = root.querySelectorAll("[email], [data-hovercard-id]");
+    for (const node of nodes) {
+      const values = [
+        node.getAttribute("email"),
+        node.getAttribute("data-hovercard-id")
+      ];
+      for (const value of values) {
+        for (const match of String(value || "").matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)) {
+          emails.add(normalizeEmail(match[0]));
+        }
+      }
+    }
+    return emails;
+  }
+
+  function matchesRequiredEmailIdentity(track, identity) {
     const subject = normalizeText(track.subject);
     return isTrackForCurrentSender(track)
       && !!subject
-      && subjectText === subject
-      && textIncludesEmailIdentity(containerText, track.recipientEmail);
+      && identity.subject === subject
+      && identityIncludesEmail(identity, track.recipientEmail);
+  }
+
+  function identityIncludesEmail(identity, email) {
+    const normalizedEmail = normalizeEmail(email);
+    return identity.emails.has(normalizedEmail) || textIncludesEmailIdentity(identity.text, normalizedEmail);
   }
 
   function textIncludesEmailIdentity(text, email) {
@@ -768,15 +797,14 @@
 
   function findBestTrackForThread(subjectNode) {
     const container = subjectNode.closest("[role='main']") || document.body;
-    const pageText = normalizeText(container.textContent || "");
-    const subject = normalizeText(subjectNode.textContent || "");
+    const identity = {
+      subject: normalizeText(subjectNode.textContent || ""),
+      text: normalizeText(container.textContent || ""),
+      emails: getEmailsFromElement(container)
+    };
 
     for (const track of state.tracks) {
-      const trackSubject = normalizeText(track.subject);
-      if (!isTrackForCurrentSender(track)) continue;
-      if (!trackSubject || subject !== trackSubject) continue;
-      if (!textIncludesEmailIdentity(pageText, track.recipientEmail)) continue;
-      return track;
+      if (matchesRequiredEmailIdentity(track, identity)) return track;
     }
 
     return null;
