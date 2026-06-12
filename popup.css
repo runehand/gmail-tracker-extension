@@ -12,8 +12,20 @@ main {
   padding: 16px;
 }
 
+header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+header svg {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+}
+
 h1 {
-  margin: 0 0 4px;
+  margin: 0;
   font-size: 18px;
 }
 

@@ -7,7 +7,23 @@
   </head>
   <body>
     <main>
-      <h1>Gmail Tracker</h1>
+      <header>
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="gtPopupGradient" x1="10" y1="8" x2="54" y2="56" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="#34d399"></stop>
+              <stop offset="1" stop-color="#047857"></stop>
+            </linearGradient>
+          </defs>
+          <rect width="64" height="64" rx="14" fill="#ecfdf5"></rect>
+          <path d="M18 20A23 23 0 0 1 45 14" fill="none" stroke="url(#gtPopupGradient)" stroke-width="9" stroke-linecap="square"></path>
+          <path d="M45 14 40 28 55 22Z" fill="#059669"></path>
+          <path d="M47 44A23 23 0 0 1 19 50" fill="none" stroke="url(#gtPopupGradient)" stroke-width="9" stroke-linecap="square"></path>
+          <path d="M19 50 24 36 9 42Z" fill="#10b981"></path>
+          <path d="m21 32 9 9 18-20" fill="none" stroke="#065f46" stroke-width="8" stroke-linecap="square" stroke-linejoin="miter"></path>
+        </svg>
+        <h1>Gmail Tracker</h1>
+      </header>
       <label>
         Dashboard URL
         <input id="dashboardUrl" type="url" placeholder="https://gmail-tracker-dashboard.vercel.app" />

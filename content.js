@@ -464,15 +464,17 @@
     return `
       <svg viewBox="0 0 48 48" aria-hidden="true">
         <defs>
-          <linearGradient id="gtLogoGradient" x1="8" x2="40" y1="6" y2="42">
+          <linearGradient id="gtLogoGradient" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse">
             <stop offset="0" stop-color="#34d399"></stop>
-            <stop offset="1" stop-color="#065f46"></stop>
+            <stop offset="1" stop-color="#047857"></stop>
           </linearGradient>
         </defs>
-        <rect x="5" y="5" width="38" height="38" rx="10" fill="url(#gtLogoGradient)"></rect>
-        <path d="M12 16h24v17H12z" fill="none" stroke="#ecfdf5" stroke-width="2.4"></path>
-        <path d="m12 17 12 9 12-9" fill="none" stroke="#ecfdf5" stroke-width="2.4"></path>
-        <text x="24" y="34" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="800" fill="#ecfdf5">GT</text>
+        <rect x="3" y="3" width="42" height="42" rx="10" fill="#ecfdf5"></rect>
+        <path d="M13.5 15A17.25 17.25 0 0 1 33.75 10.5" fill="none" stroke="url(#gtLogoGradient)" stroke-width="6.75" stroke-linecap="square"></path>
+        <path d="M33.75 10.5 30 21 41.25 16.5Z" fill="#059669"></path>
+        <path d="M35.25 33A17.25 17.25 0 0 1 14.25 37.5" fill="none" stroke="url(#gtLogoGradient)" stroke-width="6.75" stroke-linecap="square"></path>
+        <path d="M14.25 37.5 18 27 6.75 31.5Z" fill="#10b981"></path>
+        <path d="m15.75 24 6.75 6.75L36 15.75" fill="none" stroke="#065f46" stroke-width="6" stroke-linecap="square" stroke-linejoin="miter"></path>
       </svg>
     `;
   }
