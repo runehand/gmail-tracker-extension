@@ -295,10 +295,10 @@
     wrapper.setAttribute("contenteditable", "false");
     wrapper.setAttribute("aria-hidden", "true");
     wrapper.style.display = "none";
-    wrapper.style.width = "20px";
-    wrapper.style.height = "20px";
-    wrapper.style.maxWidth = "20px";
-    wrapper.style.maxHeight = "20px";
+    wrapper.style.width = "1px";
+    wrapper.style.height = "1px";
+    wrapper.style.maxWidth = "1px";
+    wrapper.style.maxHeight = "1px";
     wrapper.style.overflow = "hidden";
     wrapper.style.lineHeight = "0";
     wrapper.style.fontSize = "0";
@@ -308,14 +308,14 @@
     const pendingSrc = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAALSURBVBhXY2BABwAAEgABp3qZbgAAAABJRU5ErkJggg==";
     const src = pixelUrl || pendingSrc;
     return `
-      <span class="gt-dev-pixel" contenteditable="false" aria-hidden="true" style="display:none;width:20px;height:20px;max-width:20px;max-height:20px;overflow:hidden;line-height:0;font-size:0;">
+      <span class="gt-dev-pixel" contenteditable="false" aria-hidden="true" style="display:none;width:1px;height:1px;max-width:1px;max-height:1px;overflow:hidden;line-height:0;font-size:0;">
         <img
           ${markerId ? `data-gt-marker="${escapeHtml(markerId)}"` : ""}
           src="${escapeHtml(src)}"
           ${pixelUrl ? `data-gt-src="${escapeHtml(pixelUrl)}"` : ""}
-          width="20"
-          height="20"
-          style="display:block;width:20px;height:20px;max-width:20px;max-height:20px;border:0;outline:0;"
+          width="1"
+          height="1"
+          style="display:block;width:1px;height:1px;max-width:1px;max-height:1px;border:0;outline:0;"
           alt="Tracking pixel for ${escapeHtml(recipientEmail)}"
           ${trackId ? `data-gt-pixel="${escapeHtml(trackId)}"` : ""}
         >
