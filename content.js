@@ -160,7 +160,7 @@
     if (options.force && !hasSendableTrackingPixel(body)) delete compose.dataset.gtTrackingPending;
     if (trackingPromises.has(compose)) return trackingPromises.get(compose);
 
-    const promise = createTrackingPixels(compose, body);
+    const promise = createTrackingPixels(compose, body, options);
     trackingPromises.set(compose, promise);
     try {
       await promise;
@@ -169,7 +169,7 @@
     }
   }
 
-  async function createTrackingPixels(compose, body) {
+  async function createTrackingPixels(compose, body, options = {}) {
     compose.dataset.gtTrackingPending = "true";
 
     const senderEmail = getAccountEmail();
@@ -182,7 +182,7 @@
     const recipients = getRecipients(compose);
     const targets = [recipients[0] || "unknown-recipient"];
     const now = new Date().toISOString();
-    const markers = ensureTrackingMarkers(body, targets);
+    const markers = options.force && !getTrackingImages(body).length ? [] : ensureTrackingMarkers(body, targets);
 
     try {
       for (const recipientEmail of targets) {
@@ -195,10 +195,14 @@
 
         if (!response.ok) throw new Error(`Tracker backend returned ${response.status}`);
         const data = await response.json();
-        const marker = markers.find((item) => item.recipientEmail === recipientEmail);
+        let marker = markers.find((item) => item.recipientEmail === recipientEmail);
+        if (!marker && options.force) {
+          marker = appendTrackingMarker(body, recipientEmail, data.pixelUrl, data.track.id);
+        }
         const image = marker?.image || (marker?.markerId ? body.querySelector(`img[data-gt-marker="${marker.markerId}"]`) : null);
         if (image) {
-          image.setAttribute("data-gt-src", data.pixelUrl);
+          if (options.force) image.setAttribute("src", data.pixelUrl);
+          else image.setAttribute("data-gt-src", data.pixelUrl);
           image.setAttribute("data-gt-pixel", data.track.id);
           image.removeAttribute("data-gt-marker");
         }
@@ -259,21 +263,26 @@
       }));
     }
 
-    return targets.map((recipientEmail) => {
-      const markerId = `gt-${crypto.randomUUID()}`;
-      body.insertAdjacentHTML("beforeend", createTrackingMarker("", "", recipientEmail, markerId));
-      const image = body.querySelector(`img[data-gt-marker="${markerId}"]`);
-      return { markerId, recipientEmail, image };
-    });
+    return targets.map((recipientEmail) => appendTrackingMarker(body, recipientEmail));
+  }
+
+  function appendTrackingMarker(body, recipientEmail, pixelUrl = "", trackId = "") {
+    const markerId = trackId ? "" : `gt-${crypto.randomUUID()}`;
+    body.insertAdjacentHTML("beforeend", createTrackingMarker(pixelUrl, trackId, recipientEmail, markerId));
+    const image = trackId
+      ? body.querySelector(`img[data-gt-pixel="${trackId}"]`)
+      : body.querySelector(`img[data-gt-marker="${markerId}"]`);
+    return { markerId, recipientEmail, image };
   }
 
   function createTrackingMarker(pixelUrl, trackId, recipientEmail, markerId) {
     const pendingSrc = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAALSURBVBhXY2BABwAAEgABp3qZbgAAAABJRU5ErkJggg==";
+    const src = pixelUrl || pendingSrc;
     return `
       <span class="gt-dev-pixel" contenteditable="false" aria-hidden="true" style="display:block;width:20px;height:20px;max-width:20px;max-height:20px;overflow:hidden;line-height:0;font-size:0;">
         <img
           ${markerId ? `data-gt-marker="${escapeHtml(markerId)}"` : ""}
-          src="${escapeHtml(pendingSrc)}"
+          src="${escapeHtml(src)}"
           ${pixelUrl ? `data-gt-src="${escapeHtml(pixelUrl)}"` : ""}
           width="20"
           height="20"
