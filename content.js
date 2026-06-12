@@ -208,6 +208,7 @@
         }
         const image = marker?.image || (marker?.markerId ? body.querySelector(`img[data-gt-marker="${marker.markerId}"]`) : null);
         if (image) {
+          normalizeTrackingWrapper(image);
           if (options.force) image.setAttribute("src", data.pixelUrl);
           else image.setAttribute("data-gt-src", data.pixelUrl);
           image.setAttribute("data-gt-pixel", data.track.id);
@@ -282,7 +283,25 @@
     const image = trackId
       ? body.querySelector(`img[data-gt-pixel="${trackId}"]`)
       : body.querySelector(`img[data-gt-marker="${markerId}"]`);
+    if (image) normalizeTrackingWrapper(image);
     return { markerId, recipientEmail, image };
+  }
+
+  function normalizeTrackingWrapper(image) {
+    const wrapper = image.closest("span") || image.parentElement;
+    if (!wrapper) return;
+
+    wrapper.classList.add("gt-dev-pixel");
+    wrapper.setAttribute("contenteditable", "false");
+    wrapper.setAttribute("aria-hidden", "true");
+    wrapper.style.display = "none";
+    wrapper.style.width = "20px";
+    wrapper.style.height = "20px";
+    wrapper.style.maxWidth = "20px";
+    wrapper.style.maxHeight = "20px";
+    wrapper.style.overflow = "hidden";
+    wrapper.style.lineHeight = "0";
+    wrapper.style.fontSize = "0";
   }
 
   function createTrackingMarker(pixelUrl, trackId, recipientEmail, markerId) {
