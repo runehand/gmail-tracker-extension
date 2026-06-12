@@ -289,7 +289,7 @@
     const pendingSrc = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAALSURBVBhXY2BABwAAEgABp3qZbgAAAABJRU5ErkJggg==";
     const src = pixelUrl || pendingSrc;
     return `
-      <span class="gt-dev-pixel" contenteditable="false" aria-hidden="true" style="display:block;width:20px;height:20px;max-width:20px;max-height:20px;overflow:hidden;line-height:0;font-size:0;">
+      <span class="gt-dev-pixel" contenteditable="false" aria-hidden="true" style="display:none;width:20px;height:20px;max-width:20px;max-height:20px;overflow:hidden;line-height:0;font-size:0;">
         <img
           ${markerId ? `data-gt-marker="${escapeHtml(markerId)}"` : ""}
           src="${escapeHtml(src)}"

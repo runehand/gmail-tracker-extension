@@ -39,7 +39,7 @@
 }
 
 .gt-dev-pixel {
-  display: block;
+  display: none;
   width: 20px;
   height: 20px;
   max-width: 20px;
