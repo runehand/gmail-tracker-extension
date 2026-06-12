@@ -649,38 +649,13 @@
   function findBestTrackForRow(row, usedTrackIds) {
     const rowText = normalizeText(row.textContent || "");
     const rowSubject = normalizeText(row.querySelector(".bog")?.textContent || "");
-    const rowSnippet = normalizeText(row.querySelector(".y2")?.textContent || "");
-    const rowTime = getRowTimestamp(row);
-
-    let best = null;
-    let bestScore = -1;
 
     for (const track of state.tracks) {
       if (usedTrackIds.has(track.id)) continue;
-      if (!matchesRequiredEmailIdentity(track, rowSubject, rowText)) continue;
-
-      const body = normalizeText(track.bodyText || "");
-      let score = 0;
-
-      const bodySample = body.slice(0, 120);
-      if (bodySample && rowSnippet && (bodySample.includes(rowSnippet) || rowSnippet.includes(bodySample.slice(0, 40)))) {
-        score += 35;
-      }
-
-      if (rowTime) {
-        const minutes = Math.abs(rowTime.getTime() - new Date(track.sentAt || track.createdAt).getTime()) / 60000;
-        if (minutes <= 2) score += 20;
-        else if (minutes <= 20) score += 10;
-        else if (minutes <= 1440) score += 4;
-      }
-
-      if (score > bestScore) {
-        bestScore = score;
-        best = track;
-      }
+      if (matchesRequiredEmailIdentity(track, rowSubject, rowText)) return track;
     }
 
-    return best;
+    return null;
   }
 
   function matchesRequiredEmailIdentity(track, subjectText, containerText) {
@@ -698,12 +673,6 @@
 
     const localPart = normalizeText(normalizedEmail.split("@")[0] || "");
     return normalizedText.includes(normalizedEmail) || (!!localPart && normalizedText.includes(localPart));
-  }
-
-  function getRowTimestamp(row) {
-    const title = row.querySelector("td.xW span[title]")?.getAttribute("title") || "";
-    const parsed = Date.parse(title);
-    return Number.isNaN(parsed) ? null : new Date(parsed);
   }
 
   function normalizeText(value) {
@@ -801,27 +770,16 @@
     const container = subjectNode.closest("[role='main']") || document.body;
     const pageText = normalizeText(container.textContent || "");
     const subject = normalizeText(subjectNode.textContent || "");
-    let best = null;
-    let bestScore = -1;
 
     for (const track of state.tracks) {
       const trackSubject = normalizeText(track.subject);
-      const body = normalizeText(track.bodyText || "").slice(0, 160);
       if (!isTrackForCurrentSender(track)) continue;
       if (!trackSubject || subject !== trackSubject) continue;
       if (!textIncludesEmailIdentity(pageText, track.recipientEmail)) continue;
-
-      let score = 0;
-
-      if (body && pageText.includes(body.slice(0, 60))) score += 35;
-
-      if (score > bestScore) {
-        bestScore = score;
-        best = track;
-      }
+      return track;
     }
 
-    return best;
+    return null;
   }
 
   function formatRelativeTime(value) {
