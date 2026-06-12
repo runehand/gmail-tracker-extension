@@ -10,6 +10,13 @@
     currentAccountEmail: ""
   };
   const trackingPromises = new WeakMap();
+  const TRACKING_IMAGE_SELECTOR = [
+    "img[data-gt-pixel]",
+    "img[data-gt-marker]",
+    "img[data-gt-src]",
+    "img[alt^='Tracking pixel']",
+    ".gt-dev-pixel img"
+  ].join(", ");
 
   chrome.storage.sync.get(["dashboardUrl", "trackingEnabled"], (values) => {
     state.dashboardUrl = (values.dashboardUrl || DEFAULT_URL).replace(/\/$/, "");
@@ -205,6 +212,9 @@
           else image.setAttribute("data-gt-src", data.pixelUrl);
           image.setAttribute("data-gt-pixel", data.track.id);
           image.removeAttribute("data-gt-marker");
+          image.removeAttribute("data-surl");
+          image.removeAttribute("data-image-whitelisted");
+          image.removeAttribute("data-bit");
         }
         if (isTrackForCurrentSender(data.track)) {
           state.tracks = [data.track, ...state.tracks.filter((track) => track.id !== data.track.id)];
@@ -245,7 +255,7 @@
 
     const clone = body.cloneNode(true);
     for (const node of clone.querySelectorAll(".gt-dev-pixel")) node.remove();
-    for (const node of clone.querySelectorAll("img[data-gt-pixel], img[data-gt-marker], img[data-gt-src]")) node.remove();
+    for (const node of clone.querySelectorAll(TRACKING_IMAGE_SELECTOR)) node.remove();
 
     return {
       html: clone.innerHTML.trim(),
@@ -308,7 +318,7 @@
 
   function getTrackingImages(root) {
     if (!root) return [];
-    return Array.from(root.querySelectorAll("img[data-gt-pixel], img[data-gt-marker], img[data-gt-src], .gt-dev-pixel img"));
+    return Array.from(root.querySelectorAll(TRACKING_IMAGE_SELECTOR));
   }
 
   function hasSendableTrackingPixel(root) {
